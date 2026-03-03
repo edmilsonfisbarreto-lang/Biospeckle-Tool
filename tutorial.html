@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tutorial — Biospeckle Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --panel: #111318;
+    --panel2: #161a20;
+    --border: #1e2530;
+    --accent: #00e5ff;
+    --accent2: #00ff88;
+    --accent3: #ff6b35;
+    --text: #c8d6e5;
+    --text2: #5a7a8a;
+    --text3: #8faabb;
+    --red: #ff3b3b;
+    --yellow: #ffd600;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 32px;
+    backdrop-filter: blur(8px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: conic-gradient(from 0deg, var(--accent), var(--accent2), var(--accent3), var(--accent));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    animation: spin-glow 6s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin-glow {
+    0%   { filter: hue-rotate(0deg)   drop-shadow(0 0 6px var(--accent)); }
+    100% { filter: hue-rotate(360deg) drop-shadow(0 0 6px var(--accent)); }
+  }
+  .logo-text { line-height: 1.1; }
+  .logo-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #fff;
+    text-transform: uppercase;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 2px;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text3);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all .2s;
+  }
+  .back-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,.05);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #0a1520 50%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 64px 32px 56px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(0,229,255,.08) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,229,255,.015) 40px, rgba(0,229,255,.015) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,229,255,.015) 40px, rgba(0,229,255,.015) 41px);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,.3);
+    padding: 4px 14px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p {
+    font-size: 17px;
+    color: var(--text3);
+    max-width: 600px;
+    margin: 0 auto;
+    font-weight: 400;
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 32px 80px;
+  }
+
+  /* ── PROGRESS NAV ── */
+  .progress-nav {
+    display: flex;
+    gap: 0;
+    margin: 48px 0 0;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    border-radius: 4px;
+  }
+  .progress-step {
+    flex: 1;
+    padding: 14px 10px;
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text2);
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    display: block;
+  }
+  .progress-step:last-child { border-right: none; }
+  .progress-step:hover { background: var(--panel2); color: var(--text); }
+  .progress-step .step-num {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  /* ── SECTIONS ── */
+  .section {
+    margin-top: 64px;
+    scroll-margin-top: 80px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    width: 44px; height: 44px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--accent);
+    flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(0,229,255,.2);
+  }
+  .section-title-text {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .section-title-sub {
+    font-size: 13px;
+    color: var(--text2);
+    font-family: 'Share Tech Mono', monospace;
+    margin-top: 2px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    position: relative;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: rgba(0,229,255,.2); }
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .card:hover::before { opacity: 1; }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card p { color: var(--text3); font-size: 15px; }
+
+  /* ── STEPS LIST ── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .step-item {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+  }
+  .step-badge {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    color: #000;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content {}
+  .step-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .step-desc { color: var(--text3); font-size: 15px; }
+  .step-desc strong { color: var(--accent2); }
+  .step-desc code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    color: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── ALGO GRID ── */
+  .algo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) { .algo-grid { grid-template-columns: 1fr; } }
+
+  .algo-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .algo-card:hover { border-color: var(--accent); }
+  .algo-card::after {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: .04;
+  }
+  .algo-card.lasca::after { background: var(--accent); }
+  .algo-card.mhi::after { background: var(--accent2); }
+  .algo-card.regions::after { background: var(--accent3); }
+  .algo-card.camera::after { background: var(--yellow); }
+
+  .algo-icon { font-size: 28px; margin-bottom: 12px; }
+  .algo-name {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .algo-tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  .algo-card.lasca .algo-tag  { background: rgba(0,229,255,.1);  color: var(--accent);  border: 1px solid rgba(0,229,255,.2); }
+  .algo-card.mhi .algo-tag    { background: rgba(0,255,136,.1);  color: var(--accent2); border: 1px solid rgba(0,255,136,.2); }
+  .algo-card.regions .algo-tag{ background: rgba(255,107,53,.1); color: var(--accent3); border: 1px solid rgba(255,107,53,.2); }
+  .algo-card.camera .algo-tag { background: rgba(255,214,0,.1);  color: var(--yellow);  border: 1px solid rgba(255,214,0,.2); }
+  .algo-desc-text { color: var(--text3); font-size: 14px; line-height: 1.6; }
+
+  /* ── PARAMS TABLE ── */
+  .params-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 14px;
+  }
+  .params-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--panel2);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .params-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text3);
+    vertical-align: top;
+  }
+  .params-table tr:last-child td { border-bottom: none; }
+  .params-table td:first-child {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .params-table tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* ── TIP BOX ── */
+  .tip {
+    background: rgba(0,229,255,.05);
+    border: 1px solid rgba(0,229,255,.2);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 20px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .tip-text { color: var(--text3); font-size: 14px; line-height: 1.6; }
+  .tip-text strong { color: var(--accent); }
+
+  .warn {
+    background: rgba(255,214,0,.05);
+    border: 1px solid rgba(255,214,0,.2);
+    border-left: 3px solid var(--yellow);
+  }
+  .warn .tip-text strong { color: var(--yellow); }
+
+  .success {
+    background: rgba(0,255,136,.05);
+    border: 1px solid rgba(0,255,136,.2);
+    border-left: 3px solid var(--accent2);
+  }
+  .success .tip-text strong { color: var(--accent2); }
+
+  /* ── FILE STRUCTURE ── */
+  .file-tree {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text3);
+    line-height: 2;
+  }
+  .file-tree .folder { color: var(--accent); }
+  .file-tree .file-main { color: var(--accent2); font-weight: bold; }
+  .file-tree .file-sec { color: var(--text3); }
+
+  /* ── FAQ ── */
+  .faq-item {
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .faq-q {
+    padding: 16px 20px;
+    background: var(--panel);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    transition: background .2s;
+    user-select: none;
+  }
+  .faq-q:hover { background: var(--panel2); }
+  .faq-q.open { color: var(--accent); }
+  .faq-icon { font-size: 18px; flex-shrink: 0; transition: transform .2s; }
+  .faq-q.open .faq-icon { transform: rotate(45deg); }
+  .faq-a {
+    display: none;
+    padding: 16px 20px;
+    color: var(--text3);
+    font-size: 14px;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    background: #0c0e12;
+  }
+  .faq-a.open { display: block; }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 80px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    padding: 32px;
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 2px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 48px 0 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a href="index.html" class="logo">
+    <div class="logo-icon">🌱</div>
+    <div class="logo-text">
+      <div class="logo-title">Biospeckle Tool</div>
+      <div class="logo-sub">Desenvolvido por Edmilson Souza Barreto</div>
+    </div>
+  </a>
+  <a href="index.html" class="back-btn">← Voltar ao App</a>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Documentação Oficial</div>
+  <h1>Tutorial de <span>Uso</span></h1>
+  <p>Aprenda a configurar e utilizar todos os recursos do Biospeckle Tool Online para análise de laser speckle dinâmico.</p>
+</div>
+
+<div class="container">
+
+  <!-- PROGRESS NAV -->
+  <nav class="progress-nav">
+    <a class="progress-step" href="#inicio"><span class="step-num">01</span>Início</a>
+    <a class="progress-step" href="#camera"><span class="step-num">02</span>Câmera</a>
+    <a class="progress-step" href="#algoritmos"><span class="step-num">03</span>Algoritmos</a>
+    <a class="progress-step" href="#parametros"><span class="step-num">04</span>Parâmetros</a>
+    <a class="progress-step" href="#salvar"><span class="step-num">05</span>Exportar</a>
+    <a class="progress-step" href="#faq"><span class="step-num">06</span>FAQ</a>
+  </nav>
+
+  <!-- SECTION 1 — INÍCIO -->
+  <section class="section" id="inicio">
+    <div class="section-header">
+      <div class="section-num">01</div>
+      <div>
+        <div class="section-title-text">Primeiros Passos</div>
+        <div class="section-title-sub">Visão geral da interface e requisitos</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🖥️ Visão Geral da Interface</div>
+      <p>O Biospeckle Tool Online é dividido em três áreas principais: o <strong style="color:var(--accent)">painel esquerdo</strong> com controles e parâmetros, a <strong style="color:var(--accent)">área central</strong> com a visualização do vídeo processado em tempo real, e o <strong style="color:var(--accent)">painel direito</strong> com histograma e estatísticas.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-badge">1</div>
+        <div class="step-content">
+          <div class="step-title">Requisitos do Sistema</div>
+          <div class="step-desc">
+            Use um navegador moderno com suporte a WebRTC: <strong>Google Chrome</strong>, <strong>Firefox</strong> ou <strong>Edge</strong> (versões recentes). A aplicação requer <strong>conexão HTTPS</strong> para acesso à câmera — o GitHub Pages já fornece isso automaticamente.
+          </div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-badge">2</div>
+        <div class="step-content">
+          <div class="step-title">Equipamento Necessário</div>
+          <div class="step-desc">
+            Uma <strong>webcam USB</strong> ou câmera integrada ao computador. Para experimentos de laser speckle reais, utilize uma câmera de alta sensibilidade apontada para a amostra iluminada por um <strong>laser coerente</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 2 — CÂMERA -->
+  <section class="section" id="camera">
+    <div class="section-header">
+      <div class="section-num">02</div>
+      <div>
+        <div class="section-title-text">Controle de Câmera</div>
+        <div class="section-title-sub">Como ativar, configurar e usar a câmera</div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-badge">1</div>
+        <div class="step-content">
+          <div class="step-title">Ligar a Câmera</div>
+          <div class="step-desc">
+            No painel esquerdo, clique no botão <strong>⏻ LIGAR CÂMERA</strong>. O navegador solicitará permissão de acesso — clique em <strong>"Permitir"</strong>. A câmera será ativada e o vídeo ao vivo aparecerá na área central.
+          </div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-badge">2</div>
+        <div class="step-content">
+          <div class="step-title">Configurar FPS</div>
+          <div class="step-desc">
+            Use o controle deslizante <code>FPS ALVO</code> para definir a taxa de quadros por segundo (1 a 30). Para análises precisas de speckle, <strong>valores entre 5 e 15 FPS</strong> são recomendados. FPS muito alto pode sobrecarregar o processador — o sistema avisará na barra de status.
+          </div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-badge">3</div>
+        <div class="step-content">
+          <div class="step-title">Carregar um Vídeo</div>
+          <div class="step-desc">
+            Vá em <strong>Arquivo → Abrir Vídeo</strong> para processar um arquivo de vídeo previamente gravado (.mp4 ou .webm) em vez da câmera ao vivo. O vídeo será reproduzido <strong>sem áudio</strong> e em loop automaticamente.
+          </div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-badge">4</div>
+        <div class="step-content">
+          <div class="step-title">Histograma e Processamento</div>
+          <div class="step-desc">
+            Os toggles <strong>Histograma</strong> e <strong>Processamento</strong> no painel esquerdo permitem ativar/desativar a exibição do histograma de intensidade e o processamento de imagem respectivamente. Desabilitar o processamento exibe a imagem da câmera sem nenhum filtro.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip warn">
+      <div class="tip-icon">⚠️</div>
+      <div class="tip-text"><strong>Atenção:</strong> Se a mensagem <code>⚠ SOBRECARGA</code> aparecer na barra de status, reduza o valor de FPS. Isso garante que todos os quadros sejam processados corretamente sem perda de dados.</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 3 — ALGORITMOS -->
+  <section class="section" id="algoritmos">
+    <div class="section-header">
+      <div class="section-num">03</div>
+      <div>
+        <div class="section-title-text">Algoritmos</div>
+        <div class="section-title-sub">Os quatro modos de processamento disponíveis</div>
+      </div>
+    </div>
+
+    <div class="algo-grid">
+
+      <div class="algo-card camera">
+        <div class="algo-icon">📷</div>
+        <div class="algo-name">Imagem da Câmera</div>
+        <div class="algo-tag">SEM PROCESSAMENTO</div>
+        <div class="algo-desc-text">
+          Exibe o vídeo da câmera diretamente, sem nenhum algoritmo aplicado. Pode ser visualizado em modo <strong>Normal</strong>, <strong>Escala de Cinza</strong> ou com <strong>Coloração Artificial</strong> (pseudo-cores). Útil para verificar o alinhamento da câmera e da iluminação do laser antes de iniciar a análise.
+        </div>
+      </div>
+
+      <div class="algo-card lasca">
+        <div class="algo-icon">🔬</div>
+        <div class="algo-name">LASCA</div>
+        <div class="algo-tag">LASER SPECKLE CONTRAST</div>
+        <div class="algo-desc-text">
+          Implementa o algoritmo <em>Laser Speckle Contrast Analysis</em> (Briers & Webster, 1996). Calcula o contraste local de speckle como a razão entre o desvio padrão e a média de intensidade dentro de uma janela deslizante. Regiões com <strong>maior atividade biológica</strong> apresentam menor contraste.
+        </div>
+      </div>
+
+      <div class="algo-card mhi">
+        <div class="algo-icon">🌊</div>
+        <div class="algo-name">MHI</div>
+        <div class="algo-tag">MOTION HISTORY IMAGE</div>
+        <div class="algo-desc-text">
+          Implementa o <em>Motion History Image</em> (Godinho et al., 2012). Acumula as diferenças entre quadros consecutivos em um buffer temporal, revelando padrões de movimento ao longo do tempo. Excelente para visualizar a <strong>dinâmica de atividade</strong> em amostras biológicas.
+        </div>
+      </div>
+
+      <div class="algo-card regions">
+        <div class="algo-icon">🗺️</div>
+        <div class="algo-name">Regiões</div>
+        <div class="algo-tag">DETECÇÃO DE ATIVIDADE</div>
+        <div class="algo-desc-text">
+          Detecta e destaca as regiões de maior atividade na imagem. O fundo é exibido em <strong>escala de cinza</strong> e as áreas ativas são destacadas em <strong>vermelho</strong>. Utiliza detecção de borda com filtro Gaussiano para eliminar ruído de speckle antes da análise.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tip success" style="margin-top:24px">
+      <div class="tip-icon">✅</div>
+      <div class="tip-text"><strong>Boa prática:</strong> Comece sempre com <strong>Imagem da Câmera</strong> para verificar o setup experimental. Depois alterne para LASCA ou MHI para análise quantitativa.</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 4 — PARÂMETROS -->
+  <section class="section" id="parametros">
+    <div class="section-header">
+      <div class="section-num">04</div>
+      <div>
+        <div class="section-title-text">Parâmetros</div>
+        <div class="section-title-sub">Como ajustar cada algoritmo</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-title">🔬 Parâmetros — LASCA</div>
+      <table class="params-table">
+        <thead>
+          <tr>
+            <th>Parâmetro</th>
+            <th>Valores</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Resultado Colorido</td>
+            <td>On / Off</td>
+            <td>Quando ativo, aplica a paleta de pseudo-cores (azul → ciano → verde → amarelo → vermelho) ao resultado. Quando desativado, exibe em escala de cinza.</td>
+          </tr>
+          <tr>
+            <td>Janela (Mascara)</td>
+            <td>3, 5, 7, 9</td>
+            <td>Tamanho da janela deslizante usada no cálculo do contraste. Janelas maiores suavizam mais o resultado mas perdem resolução espacial. O valor padrão <strong>9</strong> é adequado para a maioria das aplicações.</td>
+          </tr>
+          <tr>
+            <td>Passo (Step)</td>
+            <td>1, 2, 3, 9</td>
+            <td>Deslocamento da janela a cada iteração. Valores menores geram imagens mais densas, mas são mais lentos. Disponível apenas quando o modo Travar está desativado.</td>
+          </tr>
+          <tr>
+            <td>Travar (Clássico)</td>
+            <td>On / Off</td>
+            <td>Quando ativo, o Passo segue automaticamente o valor da Janela — replicando o algoritmo LASCA clássico original de Briers & Webster.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-title">🌊 Parâmetros — MHI</div>
+      <table class="params-table">
+        <thead>
+          <tr>
+            <th>Parâmetro</th>
+            <th>Valores</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Resultado Colorido</td>
+            <td>On / Off</td>
+            <td>Aplica a paleta de pseudo-cores ao resultado do MHI. A coloração facilita a visualização da intensidade de movimento.</td>
+          </tr>
+          <tr>
+            <td>Threshold</td>
+            <td>0 – 255</td>
+            <td>Limiar de sensibilidade. Valores <strong>baixos</strong> capturam movimentos discretos. Valores <strong>altos</strong> capturam apenas movimentos abruptos. Recomendado: entre 20 e 60.</td>
+          </tr>
+          <tr>
+            <td>Buffer</td>
+            <td>2 – 32</td>
+            <td>Número de quadros armazenados para cálculo do histórico de movimento. Buffers maiores revelam movimentos mais lentos e acumulados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗺️ Parâmetros — Regiões</div>
+      <table class="params-table">
+        <thead>
+          <tr>
+            <th>Parâmetro</th>
+            <th>Valores</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Threshold</td>
+            <td>0 – 255</td>
+            <td>Controla a sensibilidade de detecção das regiões ativas. Valores menores detectam variações sutis; valores maiores destacam apenas as regiões de maior contraste.</td>
+          </tr>
+          <tr>
+            <td>Blur Radius</td>
+            <td>1 – 4</td>
+            <td>Raio do filtro Gaussiano aplicado antes da detecção de borda. Raios maiores eliminam mais o ruído de grão de speckle, gerando regiões mais compactas.</td>
+          </tr>
+          <tr>
+            <td>Espessura</td>
+            <td>1 – 5</td>
+            <td>Espessura visual do destaque em vermelho nas regiões ativas. Não afeta o cálculo, apenas a visualização.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tip">
+      <div class="tip-icon">💡</div>
+      <div class="tip-text"><strong>Paleta de Cores:</strong> A paleta de pseudo-cores vai de <span style="color:#4af">azul</span> (baixa atividade / baixo contraste) passando por <span style="color:#0f8">verde</span> até <span style="color:#f55">vermelho</span> (alta atividade / alto contraste). A escala completa pode ser visualizada no painel direito da aplicação.</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 5 — EXPORTAR -->
+  <section class="section" id="salvar">
+    <div class="section-header">
+      <div class="section-num">05</div>
+      <div>
+        <div class="section-title-text">Exportar Resultados</div>
+        <div class="section-title-sub">Como salvar imagens e usar o menu Arquivo</div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-badge">💾</div>
+        <div class="step-content">
+          <div class="step-title">Salvar Imagem</div>
+          <div class="step-desc">
+            Vá em <strong>Arquivo → Salvar Imagem</strong>. Salva o quadro atual do processamento aplicado como arquivo <code>.png</code>. O nome do arquivo inclui o algoritmo ativo e um timestamp.
+          </div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-badge">📁</div>
+        <div class="step-content">
+          <div class="step-title">Abrir Vídeo</div>
+          <div class="step-desc">
+            Vá em <strong>Arquivo → Abrir Vídeo</strong>. Selecione um arquivo <code>.mp4</code> ou <code>.webm</code> para processar em modo offline. O vídeo é reproduzido em loop e todos os algoritmos funcionam normalmente sobre ele.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip success">
+      <div class="tip-icon">✅</div>
+      <div class="tip-text"><strong>Dica de Workflow:</strong> Para análise completa, grave o experimento em vídeo primeiro, depois carregue o arquivo na aplicação e ajuste os parâmetros com calma antes de salvar os resultados finais.</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 6 — FAQ -->
+  <section class="section" id="faq">
+    <div class="section-header">
+      <div class="section-num">06</div>
+      <div>
+        <div class="section-title-text">Perguntas Frequentes</div>
+        <div class="section-title-sub">Dúvidas comuns e solução de problemas</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        A câmera não aparece ou o navegador não pede permissão. O que fazer?
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        Verifique se o site está sendo servido via <strong>HTTPS</strong> (obrigatório para acesso à câmera). Se estiver rodando o arquivo localmente, use um servidor local como o Live Server do VS Code ou acesse pelo GitHub Pages. Também verifique se a câmera não está sendo usada por outro programa.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        O processamento está muito lento ou travando. Como resolver?
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        Reduza o <strong>FPS Alvo</strong> no painel esquerdo (valores entre 5 e 10 são ideais). Para o algoritmo LASCA, aumente o <strong>Passo</strong> ou reduza o tamanho da <strong>Janela</strong>. Para o algoritmo Regiões, reduza o <strong>Blur Radius</strong>. Computadores mais antigos ou câmeras de alta resolução podem demandar FPS mais baixo.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Qual a diferença entre LASCA e MHI?
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        O <strong>LASCA</strong> analisa o contraste espacial dentro de um único quadro — mede a variação local de intensidade causada pelo speckle. Já o <strong>MHI</strong> compara quadros ao longo do tempo — acumula o histórico de diferenças temporais. LASCA é melhor para fluxo sanguíneo e atividade contínua; MHI é melhor para detectar e visualizar movimentos ao longo do tempo.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Por que o vídeo é reproduzido sem áudio?
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        O áudio foi desativado intencionalmente pois a aplicação é voltada para análise de imagens científicas, onde o áudio não é relevante. Além disso, navegadores modernos bloqueiam a reprodução automática de vídeos com áudio sem interação do usuário.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Os dados são enviados para algum servidor?
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        <strong>Não.</strong> Todo o processamento é feito localmente no seu navegador usando a API Canvas do HTML5. Nenhuma imagem, vídeo ou dado é enviado para servidores externos. A aplicação funciona completamente offline após o carregamento inicial da página.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        O algoritmo LASCA desta ferramenta é o mesmo do artigo original?
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        Sim, quando o modo <strong>Travar (Clássico)</strong> está ativado, o algoritmo replica o LASCA original de Briers & Webster (1996): a janela e o passo têm o mesmo valor, calculando o contraste espacial (desvio padrão / média) dentro de janelas não sobrepostas.
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p><a href="index.html">Voltar ao Aplicativo</a></p>
+</footer>
+
+<script>
+function toggleFaq(el) {
+  const answer = el.nextElementSibling;
+  const isOpen = el.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.classList.remove('open');
+    q.nextElementSibling.classList.remove('open');
+  });
+  // Open clicked if it was closed
+  if (!isOpen) {
+    el.classList.add('open');
+    answer.classList.add('open');
+  }
+}
+</script>
+
+</body>
+</html>

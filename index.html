@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biospeckle Tool — Online</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --panel: #111318;
+    --panel2: #161a20;
+    --border: #1e2530;
+    --accent: #00e5ff;
+    --accent2: #00ff88;
+    --accent3: #ff6b35;
+    --text: #c8d6e5;
+    --text2: #5a7a8a;
+    --text3: #8faabb;
+    --red: #ff3b3b;
+    --yellow: #ffd600;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: conic-gradient(from 0deg, var(--accent), var(--accent2), var(--accent3), var(--accent));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    font-weight: bold;
+    color: #000;
+    animation: spin-glow 6s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin-glow {
+    0% { filter: hue-rotate(0deg) drop-shadow(0 0 6px var(--accent)); }
+    100% { filter: hue-rotate(360deg) drop-shadow(0 0 6px var(--accent)); }
+  }
+  .logo-text { line-height: 1; }
+  .logo-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #fff;
+    text-transform: uppercase;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 3px;
+  }
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text2);
+    display: inline-block;
+    margin-right: 5px;
+  }
+  .status-dot.active { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .fps-display {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 3px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+  }
+
+  /* MENU BAR */
+  .menubar {
+    display: flex;
+    align-items: center;
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 10px;
+  }
+  .menu-item {
+    position: relative;
+    padding: 8px 14px;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: color .2s;
+    user-select: none;
+  }
+  .menu-item:hover { color: var(--accent); }
+  .menu-item.active { color: var(--accent); }
+  .dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    min-width: 220px;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,.6);
+  }
+  .menu-item:hover .dropdown { display: block; }
+  .dropdown-item {
+    padding: 9px 16px;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .15s, color .15s;
+  }
+  .dropdown-item:hover { background: var(--panel2); color: var(--accent); }
+  .dropdown-sep { border-top: 1px solid var(--border); margin: 4px 0; }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr 280px;
+    height: calc(100vh - 88px);
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-section {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text2);
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 12px;
+  }
+
+  /* Camera Toggle */
+  .cam-btn {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cam-btn::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    width: 0; height: 100%;
+    background: var(--accent2);
+    opacity: .1;
+    transition: width .2s;
+  }
+  .cam-btn:hover::before { width: 100%; }
+  .cam-btn.on {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    box-shadow: 0 0 12px rgba(0,229,100,.15);
+  }
+  .cam-btn.off {
+    border-color: var(--red);
+    color: var(--red);
+    box-shadow: 0 0 12px rgba(255,59,59,.15);
+  }
+
+  /* Algorithm Select */
+  .algo-list { display: flex; flex-direction: column; gap: 8px; }
+  .algo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+  }
+  .algo-item:hover { border-color: var(--accent); background: rgba(0,229,255,.04); }
+  .algo-item.selected {
+    border-color: var(--accent);
+    background: rgba(0,229,255,.08);
+  }
+  .algo-item.selected::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+  }
+  .algo-radio {
+    width: 12px; height: 12px;
+    border: 1.5px solid var(--text2);
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: all .2s;
+  }
+  .algo-item.selected .algo-radio {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+  }
+  .algo-name { font-weight: 600; font-size: 14px; color: var(--text3); }
+  .algo-item.selected .algo-name { color: var(--accent); }
+  .algo-desc { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+  /* Sliders / Controls */
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 10px;
+  }
+  .control-label {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'Share Tech Mono', monospace;
+    white-space: nowrap;
+    min-width: 80px;
+  }
+  .control-val {
+    font-size: 12px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    min-width: 32px;
+    text-align: right;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    outline: none;
+    border-radius: 2px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 6px var(--accent);
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--val, 50%), var(--border) var(--val, 50%));
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  select {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    flex: 1;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .toggle-label { font-size: 12px; color: var(--text3); }
+  .toggle {
+    width: 36px; height: 18px;
+    background: var(--border);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left .2s;
+  }
+  .toggle.on::after { left: 20px; }
+
+  /* CENTER */
+  .center-area {
+    display: flex;
+    flex-direction: column;
+    background: #08090b;
+    overflow: hidden;
+  }
+  .tabs {
+    display: flex;
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text2);
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .canvases {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    gap: 2px;
+    padding: 2px;
+    background: #05060a;
+    overflow: hidden;
+  }
+  .canvas-wrapper {
+    position: relative;
+    background: #0a0b0f;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .canvas-label {
+    position: absolute;
+    top: 8px; left: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 2px;
+    z-index: 2;
+    background: rgba(0,0,0,.6);
+    padding: 2px 6px;
+  }
+  canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .no-signal {
+    text-align: center;
+    color: var(--text2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+  }
+  .no-signal-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+    opacity: .3;
+  }
+  .scanline {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,229,255,.015) 2px,
+      rgba(0,229,255,.015) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .hist-canvas-wrap {
+    width: 100%;
+    padding: 10px 14px;
+  }
+  #histCanvas {
+    width: 100%;
+    height: 120px;
+    display: block;
+    border: 1px solid var(--border);
+    background: #08090b;
+  }
+
+  /* Stats */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-box {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--accent);
+  }
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* Status bar */
+  .statusbar {
+    padding: 6px 16px;
+    background: var(--panel2);
+    border-top: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .statusbar .msg { color: var(--accent2); flex: 1; }
+  .statusbar .warn { color: var(--yellow); }
+
+  /* Action Buttons */
+  .action-btn {
+    width: 100%;
+    padding: 9px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    transition: all .2s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,.05); }
+  .action-btn.danger:hover { border-color: var(--accent3); color: var(--accent3); background: rgba(255,107,53,.05); }
+
+  /* Color Legend */
+  .color-legend {
+    width: 100%;
+    height: 16px;
+    border-radius: 2px;
+    background: linear-gradient(to right,
+      #0000ff, #00ffff, #00ff00, #ffff00, #ff0000
+    );
+    margin: 6px 0;
+    border: 1px solid var(--border);
+  }
+  .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+  /* hidden video for capture */
+  #videoEl { display: none; }
+
+  /* Overlay when cam off */
+  .overlay-off {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8,9,11,.8);
+    z-index: 3;
+  }
+  .overlay-off svg { opacity: .2; margin-bottom: 12px; }
+  .overlay-off p { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text2); letter-spacing: 2px; }
+
+  .param-section { display: none; }
+  .param-section.active { display: block; }
+</style>
+</head>
+<body>
+
+<video id="videoEl" autoplay playsinline muted></video>
+<canvas id="offCanvas" style="display:none"></canvas>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌱</div>
+    <div class="logo-text">
+      <div class="logo-title">Biospeckle Tool</div>
+      <div class="logo-sub">Desenvolvido por Edmilson Souza Barreto</div>
+    </div>
+  </div>
+  <div class="header-status">
+    <span><span class="status-dot" id="camDot"></span><span id="camStatus">CÂMERA INATIVA</span></span>
+    <div class="fps-display"><span id="fpsLive">0</span> FPS</div>
+  </div>
+</header>
+
+<div class="menubar">
+  <div class="menu-item">ARQUIVO
+    <div class="dropdown">
+      <div class="dropdown-item" onclick="saveProcessed()">💾 Salvar Imagem</div>
+      <div class="dropdown-item" onclick="loadVideo()">📂 Abrir Vídeo (.mp4 / .webm)</div>
+    </div>
+  </div>
+  <div class="menu-item">AJUDA
+    <div class="dropdown">
+      <div class="dropdown-item" onclick="window.open('tutorial.html','_blank')">📖 Tutorial</div>
+      <div class="dropdown-sep"></div>
+      <div class="dropdown-item" onclick="showAbout()">ℹ️ Sobre</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <div class="panel-section">
+      <div class="section-title">Controle de Câmera</div>
+      <button class="cam-btn on" id="camBtn" onclick="toggleCamera()">⏻ LIGAR CÂMERA</button>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Algoritmo</div>
+      <div class="algo-list">
+        <div class="algo-item selected" data-algo="camera" onclick="selectAlgo('camera')">
+          <div class="algo-radio"></div>
+          <div>
+            <div class="algo-name">Imagem da Câmera</div>
+            <div class="algo-desc">Sem processamento</div>
+          </div>
+        </div>
+        <div class="algo-item" data-algo="lasca" onclick="selectAlgo('lasca')">
+          <div class="algo-radio"></div>
+          <div>
+            <div class="algo-name">LASCA</div>
+            <div class="algo-desc">Laser Speckle Contrast</div>
+          </div>
+        </div>
+        <div class="algo-item" data-algo="mhi" onclick="selectAlgo('mhi')">
+          <div class="algo-radio"></div>
+          <div>
+            <div class="algo-name">MHI</div>
+            <div class="algo-desc">Motion History Image</div>
+          </div>
+        </div>
+        <div class="algo-item" data-algo="regions" onclick="selectAlgo('regions')">
+          <div class="algo-radio"></div>
+          <div>
+            <div class="algo-name">Regiões</div>
+            <div class="algo-desc">Detecção de atividade</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FPS -->
+    <div class="panel-section">
+      <div class="section-title">Aquisição</div>
+      <div class="control-row">
+        <span class="control-label">FPS ALVO</span>
+        <input type="range" id="fpsSlider" min="1" max="30" value="10" oninput="updateFPS(this)">
+        <span class="control-val" id="fpsVal">10</span>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Histograma</span>
+        <div class="toggle on" id="histToggle" onclick="toggleHistogram()"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Processamento</span>
+        <div class="toggle on" id="procToggle" onclick="toggleProc()"></div>
+      </div>
+    </div>
+
+    <!-- LASCA Params -->
+    <div class="panel-section param-section active" id="params-camera">
+      <div class="section-title">Parâmetros — Câmera</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Cor Artificial</span>
+        <div class="toggle" id="colorToggleCam" onclick="toggleColorCam()"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Escala de Cinza</span>
+        <div class="toggle" id="grayToggleCam" onclick="toggleGrayCam()"></div>
+      </div>
+    </div>
+
+    <div class="panel-section param-section" id="params-lasca">
+      <div class="section-title">Parâmetros — LASCA</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Resultado Colorido</span>
+        <div class="toggle on" id="lascaColor" onclick="toggleVal('lascaColorVal')"></div>
+      </div>
+      <div class="control-row">
+        <span class="control-label">JANELA</span>
+        <select id="lascaMask" onchange="updateParam()">
+          <option>3</option><option>5</option><option>7</option><option selected>9</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span class="control-label">PASSO</span>
+        <select id="lascaStep" onchange="updateParam()">
+          <option>1</option><option>2</option><option>3</option><option selected>9</option>
+        </select>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Travar (Clássico)</span>
+        <div class="toggle on" id="lascaLock" onclick="toggleLock()"></div>
+      </div>
+    </div>
+
+    <div class="panel-section param-section" id="params-mhi">
+      <div class="section-title">Parâmetros — MHI</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Resultado Colorido</span>
+        <div class="toggle on" id="mhiColor" onclick="toggleVal('mhiColorVal')"></div>
+      </div>
+      <div class="control-row">
+        <span class="control-label">THRESHOLD</span>
+        <input type="range" id="mhiThresh" min="0" max="255" value="40" oninput="updateSlider(this,'mhiThreshVal')">
+        <span class="control-val" id="mhiThreshVal">40</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">BUFFER</span>
+        <input type="range" id="mhiBuf" min="2" max="32" value="8" oninput="updateSlider(this,'mhiBufVal')">
+        <span class="control-val" id="mhiBufVal">8</span>
+      </div>
+    </div>
+
+    <div class="panel-section param-section" id="params-regions">
+      <div class="section-title">Parâmetros — Regiões</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Sobrepor Imagem</span>
+        <div class="toggle on" id="regOverlay" onclick="toggleVal('regOverlayVal')"></div>
+      </div>
+      <div class="control-row">
+        <span class="control-label">THRESHOLD</span>
+        <input type="range" id="regThresh" min="0" max="255" value="60" oninput="updateSlider(this,'regThreshVal')">
+        <span class="control-val" id="regThreshVal">60</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">BLUR RADIUS</span>
+        <input type="range" id="regBlur" min="1" max="4" value="2" oninput="updateSlider(this,'regBlurVal')">
+        <span class="control-val" id="regBlurVal">2</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">ESPESSURA</span>
+        <input type="range" id="regWidth" min="1" max="5" value="2" oninput="updateSlider(this,'regWidthVal')">
+        <span class="control-val" id="regWidthVal">2</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-area">
+    <div class="tabs">
+      <div class="tab active">AO VIVO</div>
+    </div>
+    <div class="canvases" id="canvasArea">
+      <div class="canvas-wrapper" id="procWrapper">
+        <div class="scanline"></div>
+        <span class="canvas-label" id="procLabel">IMAGEM DA CÂMERA</span>
+        <canvas id="procCanvas"></canvas>
+        <div class="overlay-off" id="camOverlay">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <p>CÂMERA DESLIGADA</p>
+          <p style="margin-top:6px;font-size:10px;opacity:.5">Clique em "Ligar Câmera"</p>
+        </div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <span class="msg" id="statusMsg">Sistema pronto. Aguardando câmera.</span>
+      <span id="statusWarn"></span>
+      <span id="statusFps" style="font-size:10px;color:var(--text2)"></span>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <div class="panel-section">
+      <div class="section-title">Histograma</div>
+      <div class="hist-canvas-wrap">
+        <canvas id="histCanvas" width="248" height="120"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Estatísticas</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" id="statMean">—</div><div class="stat-lbl">MÉDIA</div></div>
+        <div class="stat-box"><div class="stat-val" id="statStd">—</div><div class="stat-lbl">STD DEV</div></div>
+        <div class="stat-box"><div class="stat-val" id="statMin">—</div><div class="stat-lbl">MÍN</div></div>
+        <div class="stat-box"><div class="stat-val" id="statMax">—</div><div class="stat-lbl">MÁX</div></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Paleta de Cores</div>
+      <div class="color-legend"></div>
+      <div class="legend-labels"><span>0</span><span>64</span><span>128</span><span>192</span><span>255</span></div>
+      <div style="margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2)">
+        Azul → Ciano → Verde → Amarelo → Vermelho
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Info do Frame</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);line-height:1.8">
+        <div>RESOLUÇÃO: <span id="infoRes" style="color:var(--accent)">—</span></div>
+        <div>FRAMES: <span id="infoFrames" style="color:var(--accent)">0</span></div>
+        <div>ALGORITMO: <span id="infoAlgo" style="color:var(--accent2)">CÂMERA</span></div>
+        <div>TEMPO PROC: <span id="infoTime" style="color:var(--accent)">—</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<input type="file" id="videoInput" accept="video/*" style="display:none" onchange="loadVideoFile(this)">
+
+<script>
+// ===== STATE =====
+const state = {
+  cameraOn: false,
+  algo: 'camera',
+  tab: 'live',
+  histEnabled: true,
+  procEnabled: true,
+  lascaColorVal: true,
+  mhiColorVal: true,
+  regOverlayVal: true,
+  camColorVal: false,
+  camGrayVal: false,
+  lascaLockVal: true,
+  frameCount: 0,
+  mhiBuffer: [],
+  stream: null,
+  animId: null,
+  lastTime: 0,
+  fpsTarget: 10,
+  fpsActual: 0,
+  procTime: 0,
+  videoMode: false
+};
+
+const video = document.getElementById('videoEl');
+const off = document.getElementById('offCanvas');
+const offCtx = off.getContext('2d');
+const procC = document.getElementById('procCanvas');
+const procCtx = procC.getContext('2d');
+const histC = document.getElementById('histCanvas');
+const histCtx = histC.getContext('2d');
+
+// ===== COLOR CONVERSION (LASCA/MHI palette) =====
+function grayToColor(g) {
+  let r, gr, b;
+  if (g < 64) { r=0; gr=g*4; b=255; }
+  else if (g < 128) { r=0; gr=255; b=255-(g-64)*4; }
+  else if (g < 192) { r=(g-128)*4; gr=255; b=0; }
+  else { r=255; gr=255-(g-192)*4; b=0; }
+  return [r, gr, b];
+}
+
+// ===== LASCA =====
+function applyLASCA(src, w, h) {
+  const mask = parseInt(document.getElementById('lascaMask').value);
+  const step = state.lascaLockVal ? mask : parseInt(document.getElementById('lascaStep').value);
+  const half = Math.floor(mask/2);
+  const d = src.data;
+  const out = new Uint8ClampedArray(w * h * 4);
+
+  for (let y = half; y < h - half; y += step) {
+    for (let x = half; x < w - half; x += step) {
+      let sum = 0, sumSq = 0, cnt = 0;
+      for (let ky = -half; ky <= half; ky++) {
+        for (let kx = -half; kx <= half; kx++) {
+          const idx = ((y+ky)*w + (x+kx))*4;
+          const gray = (d[idx]*0.299 + d[idx+1]*0.587 + d[idx+2]*0.114);
+          sum += gray; sumSq += gray*gray; cnt++;
+        }
+      }
+      const mean = sum/cnt;
+      const std = Math.sqrt(Math.max(0, sumSq/cnt - mean*mean));
+      const contrast = mean > 0 ? std/mean : 0;
+      const gv = Math.min(255, Math.round(contrast * 255 * 4));
+
+      for (let sy = 0; sy < step && y+sy < h; sy++) {
+        for (let sx = 0; sx < step && x+sx < w; sx++) {
+          const oi = ((y+sy)*w + (x+sx))*4;
+          if (state.lascaColorVal) {
+            const [r,g,b] = grayToColor(gv);
+            out[oi]=r; out[oi+1]=g; out[oi+2]=b; out[oi+3]=255;
+          } else {
+            out[oi]=gv; out[oi+1]=gv; out[oi+2]=gv; out[oi+3]=255;
+          }
+        }
+      }
+    }
+  }
+  return new ImageData(out, w, h);
+}
+
+// ===== MHI =====
+function applyMHI(src, w, h) {
+  const thresh = parseInt(document.getElementById('mhiThresh').value);
+  const bufSize = parseInt(document.getElementById('mhiBuf').value);
+  const d = src.data;
+  const gray = new Uint8Array(w*h);
+  for (let i=0;i<w*h;i++) {
+    const idx=i*4;
+    gray[i]=Math.round(d[idx]*0.299+d[idx+1]*0.587+d[idx+2]*0.114);
+  }
+  state.mhiBuffer.push(gray);
+  if (state.mhiBuffer.length > bufSize) state.mhiBuffer.shift();
+
+  const out = new Uint8ClampedArray(w*h*4);
+  if (state.mhiBuffer.length < 2) {
+    for (let i=0;i<w*h;i++){out[i*4+3]=255;}
+    return new ImageData(out,w,h);
+  }
+  const prev = state.mhiBuffer[state.mhiBuffer.length-2];
+  const curr = state.mhiBuffer[state.mhiBuffer.length-1];
+
+  for (let i=0;i<w*h;i++){
+    const diff = Math.abs(curr[i]-prev[i]);
+    const gv = diff > thresh ? Math.min(255,diff*3) : 0;
+    const oi=i*4;
+    if (state.mhiColorVal) {
+      const [r,g,b] = grayToColor(gv);
+      out[oi]=r;out[oi+1]=g;out[oi+2]=b;out[oi+3]=255;
+    } else {
+      out[oi]=gv;out[oi+1]=gv;out[oi+2]=gv;out[oi+3]=255;
+    }
+  }
+  return new ImageData(out,w,h);
+}
+
+// ===== REGIONS =====
+function applyRegions(src, w, h) {
+  const thresh = parseInt(document.getElementById('regThresh').value);
+  const blur = parseInt(document.getElementById('regBlur').value);
+  const lineW = parseInt(document.getElementById('regWidth').value);
+  const d = src.data;
+
+  // Grayscale
+  const gray = new Float32Array(w*h);
+  for (let i=0;i<w*h;i++){
+    const idx=i*4;
+    gray[i]=d[idx]*0.299+d[idx+1]*0.587+d[idx+2]*0.114;
+  }
+  // Box blur
+  const blurred = new Float32Array(w*h);
+  const r = blur*2+1;
+  for (let y=0;y<h;y++){
+    for (let x=0;x<w;x++){
+      let sum=0,cnt=0;
+      for (let ky=-r;ky<=r;ky++){
+        for (let kx=-r;kx<=r;kx++){
+          const nx=x+kx,ny=y+ky;
+          if(nx>=0&&nx<w&&ny>=0&&ny<h){sum+=gray[ny*w+nx];cnt++;}
+        }
+      }
+      blurred[y*w+x]=sum/cnt;
+    }
+  }
+  // Edge detection (Sobel-like)
+  const out = new Uint8ClampedArray(w*h*4);
+
+  for (let y=1;y<h-1;y++){
+    for (let x=1;x<w-1;x++){
+      const gx = blurred[y*w+x+1]-blurred[y*w+x-1];
+      const gy = blurred[(y+1)*w+x]-blurred[(y-1)*w+x];
+      const mag = Math.sqrt(gx*gx+gy*gy);
+      const oi=(y*w+x)*4;
+      // Always render grayscale background
+      const gv = Math.round(gray[y*w+x]);
+      out[oi]=gv; out[oi+1]=gv; out[oi+2]=gv; out[oi+3]=255;
+      // Overlay red highlight on active regions
+      if (mag > thresh) {
+        out[oi]=255; out[oi+1]=0; out[oi+2]=0; out[oi+3]=255;
+      }
+    }
+  }
+  return new ImageData(out,w,h);
+}
+
+// ===== HISTOGRAM =====
+function drawHistogram(src) {
+  if (!state.histEnabled) return;
+  const d = src.data;
+  const bins = new Array(256).fill(0);
+  for (let i=0;i<d.length;i+=4){
+    const g=Math.round(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114);
+    bins[g]++;
+  }
+  const maxBin = Math.max(...bins);
+  const cw=histC.width, ch=histC.height;
+  histCtx.clearRect(0,0,cw,ch);
+  histCtx.fillStyle='#08090b';
+  histCtx.fillRect(0,0,cw,ch);
+  // Grid
+  histCtx.strokeStyle='#1a2030';
+  histCtx.lineWidth=1;
+  for (let i=0;i<=4;i++){
+    const y=ch-Math.round(i/4*ch);
+    histCtx.beginPath();histCtx.moveTo(0,y);histCtx.lineTo(cw,y);histCtx.stroke();
+  }
+  // Bars
+  for (let i=0;i<256;i++){
+    const x=Math.round(i/256*cw);
+    const bh=Math.round(bins[i]/maxBin*ch);
+    const [r,g,b]=grayToColor(i);
+    histCtx.fillStyle=`rgba(${r},${g},${b},0.8)`;
+    histCtx.fillRect(x,ch-bh,Math.max(1,cw/256),bh);
+  }
+  // Stats
+  let sum=0,sumSq=0,cnt=0,minV=255,maxV=0;
+  for (let i=0;i<d.length;i+=4){
+    const g=Math.round(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114);
+    sum+=g;sumSq+=g*g;cnt++;
+    if(g<minV)minV=g;if(g>maxV)maxV=g;
+  }
+  const mean=sum/cnt;
+  const std=Math.sqrt(sumSq/cnt-mean*mean);
+  document.getElementById('statMean').textContent=mean.toFixed(1);
+  document.getElementById('statStd').textContent=std.toFixed(1);
+  document.getElementById('statMin').textContent=minV;
+  document.getElementById('statMax').textContent=maxV;
+}
+
+// ===== MAIN LOOP =====
+function loop(ts) {
+  if (!state.cameraOn) return;
+  const interval = 1000/state.fpsTarget;
+  if (ts - state.lastTime < interval) {
+    state.animId = requestAnimationFrame(loop);
+    return;
+  }
+  const dt = ts - state.lastTime;
+  state.lastTime = ts;
+  state.fpsActual = Math.round(1000/dt);
+  document.getElementById('fpsLive').textContent = state.fpsActual;
+  document.getElementById('statusFps').textContent = `${state.fpsActual} FPS`;
+
+  const vw = video.videoWidth || 320;
+  const vh = video.videoHeight || 240;
+  if (vw === 0) { state.animId = requestAnimationFrame(loop); return; }
+
+  off.width = vw; off.height = vh;
+  offCtx.drawImage(video, 0, 0, vw, vh);
+  const rawData = offCtx.getImageData(0, 0, vw, vh);
+
+  // Resize canvas
+  if (procC.width !== vw) procC.width = vw;
+  if (procC.height !== vh) procC.height = vh;
+
+  document.getElementById('infoRes').textContent = `${vw}×${vh}`;
+  document.getElementById('infoFrames').textContent = ++state.frameCount;
+
+  const t0 = performance.now();
+
+  // Build display data for camera mode
+  let displayData = rawData;
+  if (state.camColorVal) {
+    const cd = new Uint8ClampedArray(rawData.data.length);
+    for (let i=0;i<rawData.data.length;i+=4){
+      const g=Math.round(rawData.data[i]*0.299+rawData.data[i+1]*0.587+rawData.data[i+2]*0.114);
+      const [r,gr,b]=grayToColor(g);
+      cd[i]=r;cd[i+1]=gr;cd[i+2]=b;cd[i+3]=255;
+    }
+    displayData = new ImageData(cd, vw, vh);
+  } else if (state.camGrayVal) {
+    const cd = new Uint8ClampedArray(rawData.data.length);
+    for (let i=0;i<rawData.data.length;i+=4){
+      const g=Math.round(rawData.data[i]*0.299+rawData.data[i+1]*0.587+rawData.data[i+2]*0.114);
+      cd[i]=g;cd[i+1]=g;cd[i+2]=g;cd[i+3]=255;
+    }
+    displayData = new ImageData(cd, vw, vh);
+  }
+
+  // Render to single procCanvas
+  if (state.procEnabled && state.algo !== 'camera') {
+    let processed;
+    if (state.algo === 'lasca') processed = applyLASCA(rawData, vw, vh);
+    else if (state.algo === 'mhi') processed = applyMHI(rawData, vw, vh);
+    else if (state.algo === 'regions') processed = applyRegions(rawData, vw, vh);
+    if (processed) {
+      procCtx.putImageData(processed, 0, 0);
+      drawHistogram(processed);
+    }
+  } else {
+    procCtx.putImageData(displayData, 0, 0);
+    drawHistogram(rawData);
+  }
+
+  state.procTime = (performance.now()-t0).toFixed(1);
+  document.getElementById('infoTime').textContent = state.procTime + 'ms';
+
+  // Check overhead
+  if (dt > interval * 1.5 && state.fpsTarget > 5) {
+    document.getElementById('statusWarn').textContent = '⚠ SOBRECARGA';
+    document.getElementById('statusWarn').style.color='var(--yellow)';
+  } else {
+    document.getElementById('statusWarn').textContent = '';
+  }
+
+  state.animId = requestAnimationFrame(loop);
+}
+
+// ===== CAMERA =====
+async function toggleCamera() {
+  if (!state.cameraOn) {
+    try {
+      state.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+      video.srcObject = state.stream;
+      await video.play();
+      state.cameraOn = true;
+      document.getElementById('camBtn').textContent = '⏻ DESLIGAR CÂMERA';
+      document.getElementById('camBtn').className = 'cam-btn off';
+      document.getElementById('camDot').className = 'status-dot active';
+      document.getElementById('camStatus').textContent = 'CÂMERA ATIVA';
+      document.getElementById('camOverlay').style.display = 'none';
+      setStatus('Câmera ativada. Iniciando processamento...');
+      state.lastTime = 0;
+      state.animId = requestAnimationFrame(loop);
+    } catch(e) {
+      setStatus('Erro: ' + e.message);
+    }
+  } else {
+    cancelAnimationFrame(state.animId);
+    if (state.stream) state.stream.getTracks().forEach(t=>t.stop());
+    video.srcObject = null;
+    state.cameraOn = false;
+    state.mhiBuffer = [];
+    document.getElementById('camBtn').textContent = '⏻ LIGAR CÂMERA';
+    document.getElementById('camBtn').className = 'cam-btn on';
+    document.getElementById('camDot').className = 'status-dot';
+    document.getElementById('camStatus').textContent = 'CÂMERA INATIVA';
+    document.getElementById('camOverlay').style.display = 'flex';
+    document.getElementById('fpsLive').textContent = '0';
+    setStatus('Câmera desligada.');
+    procCtx.clearRect(0,0,procC.width,procC.height);
+  }
+}
+
+// ===== ALGO LABEL MAP =====
+const algoLabels = {
+  camera: 'IMAGEM DA CÂMERA',
+  lasca: 'LASCA — Laser Speckle Contrast',
+  mhi: 'MHI — Motion History Image',
+  regions: 'REGIÕES — Detecção de Atividade'
+};
+
+// ===== UI HELPERS =====
+function selectAlgo(algo) {
+  state.algo = algo;
+  state.mhiBuffer = [];
+  document.querySelectorAll('.algo-item').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.algo===algo);
+  });
+  document.querySelectorAll('.param-section').forEach(el=>el.classList.remove('active'));
+  const ps = document.getElementById('params-'+algo);
+  if (ps) ps.classList.add('active');
+  document.getElementById('procLabel').textContent = algoLabels[algo] || algo.toUpperCase();
+  document.getElementById('infoAlgo').textContent = algo.toUpperCase();
+  setStatus(`Algoritmo selecionado: ${algo.toUpperCase()}`);
+}
+
+function toggleHistogram() {
+  state.histEnabled = !state.histEnabled;
+  const t = document.getElementById('histToggle');
+  t.classList.toggle('on', state.histEnabled);
+}
+function toggleProc() {
+  state.procEnabled = !state.procEnabled;
+  document.getElementById('procToggle').classList.toggle('on', state.procEnabled);
+}
+function toggleColorCam() { state.camColorVal=!state.camColorVal; state.camGrayVal=false; document.getElementById('colorToggleCam').classList.toggle('on',state.camColorVal); document.getElementById('grayToggleCam').classList.remove('on'); }
+function toggleGrayCam() { state.camGrayVal=!state.camGrayVal; state.camColorVal=false; document.getElementById('grayToggleCam').classList.toggle('on',state.camGrayVal); document.getElementById('colorToggleCam').classList.remove('on'); }
+function toggleLock() { state.lascaLockVal=!state.lascaLockVal; document.getElementById('lascaLock').classList.toggle('on',state.lascaLockVal); document.getElementById('lascaStep').disabled=state.lascaLockVal; }
+function toggleVal(key) { state[key]=!state[key]; const id=key.replace('Val',''); document.getElementById(id)?.classList.toggle('on',state[key]); }
+function toggleOverlay() { toggleVal('regOverlayVal'); }
+
+function updateFPS(el) {
+  state.fpsTarget = parseInt(el.value);
+  document.getElementById('fpsVal').textContent = el.value;
+}
+function updateSlider(el, valId) {
+  document.getElementById(valId).textContent = el.value;
+}
+function updateParam() {}
+
+function resetParams() {
+  document.getElementById('mhiThresh').value=40; document.getElementById('mhiThreshVal').textContent=40;
+  document.getElementById('mhiBuf').value=8; document.getElementById('mhiBufVal').textContent=8;
+  document.getElementById('regThresh').value=60; document.getElementById('regThreshVal').textContent=60;
+  document.getElementById('regBlur').value=2; document.getElementById('regBlurVal').textContent=2;
+  document.getElementById('regWidth').value=2; document.getElementById('regWidthVal').textContent=2;
+  document.getElementById('fpsSlider').value=10; document.getElementById('fpsVal').textContent=10;
+  state.fpsTarget=10;
+  setStatus('Parâmetros resetados.');
+}
+
+function setStatus(msg) {
+  document.getElementById('statusMsg').textContent = msg;
+}
+
+function saveProcessed() {
+  const link = document.createElement('a');
+  link.download = `speckle_${state.algo}_${Date.now()}.png`;
+  link.href = procC.toDataURL();
+  link.click();
+  setStatus('Imagem processada salva.');
+}
+
+let seqCount = 0;
+function saveSequence() {
+  if (!state.cameraOn) { setStatus('Câmera desligada.'); return; }
+  let n = 0;
+  const max = 10;
+  const iv = setInterval(()=>{
+    if (n >= max) { clearInterval(iv); setStatus(`Sequência de ${max} frames salva.`); return; }
+    const link=document.createElement('a');
+    link.download=`seq_${seqCount}_frame${n+1}.png`;
+    link.href=procC.toDataURL();
+    link.click();
+    n++;
+  }, Math.round(1000/state.fpsTarget)+100);
+  seqCount++;
+}
+
+function loadVideo() { document.getElementById('videoInput').click(); }
+function loadVideoFile(input) {
+  const file = input.files[0]; if (!file) return;
+  if (state.cameraOn) toggleCamera();
+  const url = URL.createObjectURL(file);
+  video.srcObject = null;
+  video.src = url;
+  video.loop = true;
+  video.play();
+  state.cameraOn = true;
+  state.videoMode = true;
+  document.getElementById('camDot').className='status-dot active';
+  document.getElementById('camStatus').textContent='VÍDEO ATIVO';
+  document.getElementById('camOverlay').style.display='none';
+  document.getElementById('camBtn').textContent='⏻ PARAR VÍDEO';
+  document.getElementById('camBtn').className='cam-btn off';
+  setStatus('Reproduzindo vídeo: '+file.name);
+  state.lastTime=0;
+  state.animId=requestAnimationFrame(loop);
+}
+
+function showAbout() {
+  alert('Biospeckle Tool — Versão Online\n\nDesenvolvido por Edmilson Souza Barreto\n\nAlgoritmos:\n• LASCA — Laser Speckle Contrast Analysis\n• MHI — Motion History Image\n• Regiões — Detecção de área de atividade');
+}
+
+// Init
+document.getElementById('lascaStep').disabled = true;
+setStatus('Sistema pronto. Clique em "Ligar Câmera" para iniciar.');
+</script>
+</body>
+</html>
