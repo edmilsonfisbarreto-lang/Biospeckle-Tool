@@ -552,6 +552,48 @@
 
   .param-section { display: none; }
   .param-section.active { display: block; }
+
+  /* Portrait warning overlay */
+  #portraitWarning {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--bg);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+  }
+  #portraitWarning .pw-icon {
+    font-size: 64px;
+    margin-bottom: 24px;
+    animation: rotate-hint 2s ease-in-out infinite;
+  }
+  @keyframes rotate-hint {
+    0%,100% { transform: rotate(0deg); }
+    40%      { transform: rotate(90deg); }
+    60%      { transform: rotate(90deg); }
+  }
+  #portraitWarning h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  #portraitWarning p {
+    font-size: 14px;
+    color: var(--text3);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+    line-height: 1.8;
+  }
+  @media (orientation: portrait) and (max-width: 768px) {
+    #portraitWarning { display: flex; }
+  }
 </style>
 </head>
 <body>
@@ -559,12 +601,19 @@
 <video id="videoEl" autoplay playsinline muted></video>
 <canvas id="offCanvas" style="display:none"></canvas>
 
+<!-- PORTRAIT WARNING (mobile only) -->
+<div id="portraitWarning">
+  <div class="pw-icon">📱</div>
+  <h2>Gire o Dispositivo</h2>
+  <p>Para usar o Biospeckle Tool<br>no celular, utilize o aparelho<br>na <strong style="color:var(--accent)">orientação horizontal</strong>.</p>
+</div>
+
 <header>
   <div class="logo">
     <div class="logo-icon">🌱</div>
     <div class="logo-text">
       <div class="logo-title">Biospeckle Tool</div>
-      <div class="logo-sub">Desenvolvido por Edmilson Souza Barreto</div>
+      <div class="logo-sub">Sistema de análise de Biospeckle</div>
     </div>
   </div>
   <div class="header-status">
@@ -578,6 +627,8 @@
     <div class="dropdown">
       <div class="dropdown-item" onclick="saveProcessed()">💾 Salvar Imagem</div>
       <div class="dropdown-item" onclick="loadVideo()">📂 Abrir Vídeo (.mp4 / .webm)</div>
+      <div class="dropdown-sep"></div>
+      <div class="dropdown-item" onclick="window.open('https://github.com/edmilsonfisbarreto-lang/Biospeckle-Tool','_blank')">⬇️ Download do App (Offline)</div>
     </div>
   </div>
   <div class="menu-item">AJUDA
@@ -597,6 +648,10 @@
     <div class="panel-section">
       <div class="section-title">Controle de Câmera</div>
       <button class="cam-btn on" id="camBtn" onclick="toggleCamera()">⏻ LIGAR CÂMERA</button>
+      <div id="camSelectWrap" style="display:none; margin-top:10px;">
+        <div class="control-label" style="margin-bottom:6px; display:block;">CÂMERA</div>
+        <select id="camSelect" onchange="switchCamera()" style="width:100%"></select>
+      </div>
     </div>
 
     <div class="panel-section">
@@ -1092,13 +1147,71 @@ function loop(ts) {
 }
 
 // ===== CAMERA =====
+async function populateCameras() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === 'videoinput');
+    const sel = document.getElementById('camSelect');
+    const wrap = document.getElementById('camSelectWrap');
+    const currentId = state.stream
+      ? state.stream.getVideoTracks()[0]?.getSettings()?.deviceId
+      : null;
+    sel.innerHTML = '';
+    cameras.forEach((cam, i) => {
+      const opt = document.createElement('option');
+      opt.value = cam.deviceId;
+      let label = cam.label || `Câmera ${i + 1}`;
+      opt.textContent = label;
+      if (cam.deviceId === currentId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    wrap.style.display = cameras.length > 1 ? 'block' : 'none';
+  } catch(e) {}
+}
+
+async function startCameraById(deviceId) {
+  if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+
+  // If specific device selected, use it
+  if (deviceId && deviceId !== '') {
+    try { return await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio: false }); } catch(e) {}
+    try { return await navigator.mediaDevices.getUserMedia({ video: { deviceId: deviceId }, audio: false }); } catch(e) {}
+  }
+
+  // Otherwise try in order: rear exact, rear, any
+  try { return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false }); } catch(e) {}
+  try { return await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); } catch(e) {}
+  try { return await navigator.mediaDevices.getUserMedia({ video: true }); } catch(e) {}
+  try { return await navigator.mediaDevices.getUserMedia({ video: {}, audio: false }); } catch(e) {}
+
+  throw new Error('Permissão de câmera negada ou nenhuma câmera disponível. Verifique as permissões do navegador.');
+}
+
+async function switchCamera() {
+  if (!state.cameraOn) return;
+  const deviceId = document.getElementById('camSelect').value;
+  try {
+    cancelAnimationFrame(state.animId);
+    state.stream = await startCameraById(deviceId);
+    video.srcObject = state.stream;
+    await video.play();
+    state.lastTime = 0;
+    state.animId = requestAnimationFrame(loop);
+    setStatus('Câmera alterada.');
+  } catch(e) {
+    setStatus('Erro ao trocar câmera: ' + e.message);
+  }
+}
+
 async function toggleCamera() {
   if (!state.cameraOn) {
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+      const deviceId = document.getElementById('camSelect').value || null;
+      state.stream = await startCameraById(deviceId);
       video.srcObject = state.stream;
       await video.play();
       state.cameraOn = true;
+      await populateCameras();
       document.getElementById('camBtn').textContent = '⏻ DESLIGAR CÂMERA';
       document.getElementById('camBtn').className = 'cam-btn off';
       document.getElementById('camDot').className = 'status-dot active';
@@ -1109,6 +1222,7 @@ async function toggleCamera() {
       state.animId = requestAnimationFrame(loop);
     } catch(e) {
       setStatus('Erro: ' + e.message);
+      alert('Erro ao acessar câmera:\n' + e.name + '\n' + e.message);
     }
   } else {
     cancelAnimationFrame(state.animId);
@@ -1121,6 +1235,7 @@ async function toggleCamera() {
     document.getElementById('camDot').className = 'status-dot';
     document.getElementById('camStatus').textContent = 'CÂMERA INATIVA';
     document.getElementById('camOverlay').style.display = 'flex';
+    document.getElementById('camSelectWrap').style.display = 'none';
     document.getElementById('fpsLive').textContent = '0';
     setStatus('Câmera desligada.');
     procCtx.clearRect(0,0,procC.width,procC.height);
@@ -1235,7 +1350,7 @@ function loadVideoFile(input) {
 }
 
 function showAbout() {
-  alert('Biospeckle Tool — Versão Online\n\nDesenvolvido por Edmilson Souza Barreto\n\nAlgoritmos:\n• LASCA — Laser Speckle Contrast Analysis\n• MHI — Motion History Image\n• Regiões — Detecção de área de atividade');
+  alert('Biospeckle Tool — Versão Online\n\nSistema de análise de Biospeckle\n\nAlgoritmos:\n• LASCA — Laser Speckle Contrast Analysis\n• MHI — Motion History Image\n• Regiões — Detecção de área de atividade');
 }
 
 // Init
